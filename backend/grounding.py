@@ -180,14 +180,14 @@ if __name__ == "__main__":
 
     point_coords, point_labels, sam_labels = boxes_to_sam_prompts(detections)
 
-    print("\nSAM2 Prompt Points:")
-    print(point_coords)
+    # print("\nSAM2 Prompt Points:")
+    # print(point_coords)
 
-    print("\nSAM2 Point Labels:")
-    print(point_labels)
+    # print("\nSAM2 Point Labels:")
+    # print(point_labels)
 
-    print("\nDetection Labels:")
-    print(sam_labels)
+    # print("\nDetection Labels:")
+    # print(sam_labels)
 
     print(f"\nDetected {len(detections)} objects:")
     for d in detections:

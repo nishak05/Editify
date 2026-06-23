@@ -76,14 +76,15 @@ async def upload_image(
         raise HTTPException(500, f"Pipeline failed: {str(e)}")
 
     return JSONResponse({
-        "project_id":        project.id,
-        "file_id":           file_id,
-        "filename":          file.filename,
-        "image_w":           result["image_w"],
-        "image_h":           result["image_h"],
-        "image_base64":      result["image_base64"],
-        "layers":            result["layers"],
-        "processing_time_s": result["processing_time_s"],
+        "project_id":           project.id,
+        "file_id":              file_id,
+        "filename":             file.filename,
+        "image_w":              result["image_w"],
+        "image_h":              result["image_h"],
+        "background_base64":    result["background_base64"],
+        "original_base64":      result["original_base64"],
+        "layers":               result["layers"],
+        "processing_time_s":    result["processing_time_s"],
     })
 
 
@@ -167,3 +168,30 @@ async def inpaint_element(request: dict):
     except Exception as e:
         unload_inpaint_model()
         raise HTTPException(500, f"Inpainting failed: {str(e)}")
+    
+
+@app.get("/projects/{file_id}/layers")
+async def get_project_layers(file_id: str, db: Session = Depends(get_db)):
+    """Re-run pipeline on existing upload to get full layer data."""
+    project = get_project_by_file_id(db, file_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    if not os.path.exists(project.upload_path):
+        raise HTTPException(404, "Original file no longer exists")
+
+    try:
+        result = run_pipeline(project.upload_path)
+        return JSONResponse({
+            "project_id":        project.id,
+            "file_id":           file_id,
+            "filename":          project.filename,
+            "image_w":           result["image_w"],
+            "image_h":           result["image_h"],
+            "background_base64": result["background_base64"],
+            "original_base64":   result["original_base64"],
+            "layers":            result["layers"],
+            "processing_time_s": result["processing_time_s"],
+        })
+    except Exception as e:
+        raise HTTPException(500, f"Pipeline failed: {str(e)}")

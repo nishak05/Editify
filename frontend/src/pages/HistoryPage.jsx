@@ -32,6 +32,16 @@ export default function HistoryPage({ onOpen }) {
     </div>
   )
 
+  const fetchAndOpen = async (project) => {
+    if (project.status !== 'ready') return
+    try {
+      const res = await axios.get(`${API}/projects/${project.file_id}/layers`)
+      onOpen(res.data)
+    } catch {
+      alert('Could not load project. Try uploading again.')
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
       <h1 className="text-2xl font-bold mb-6">Past projects</h1>
@@ -40,7 +50,7 @@ export default function HistoryPage({ onOpen }) {
           <div
             key={p.id}
             className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-600 transition cursor-pointer"
-            onClick={() => onOpen(p)}
+            onClick={() => fetchAndOpen(p)}
           >
             <div className="text-sm font-medium text-white truncate mb-2">{p.filename}</div>
             <div className="flex justify-between text-xs text-gray-500">

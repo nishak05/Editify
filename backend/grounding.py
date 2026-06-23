@@ -52,8 +52,6 @@ def detect_objects(image_path: str, model, text_prompt: str = None) -> list:
     # load_image returns (PIL image, transformed tensor) — both needed
     image_pil, image_tensor = load_image(image_path)
 
-    print(type(image_pil))
-    print(image_pil.shape)
 
     img_h, img_w = image_pil.shape[:2]
 

@@ -20,10 +20,6 @@ print(f"[GDINO] Using device: {DEVICE}")
 
 
 def load_grounding_model():
-    """
-    Load GroundingDINO model into memory.
-    Call once at startup — takes ~5 seconds.
-    """
     model = load_model(GROUNDING_CONFIG, GROUNDING_WEIGHTS)
     model = model.to(DEVICE)
     print("[GDINO] Model loaded successfully")
@@ -44,9 +40,12 @@ def detect_objects(image_path: str, model, text_prompt: str = None) -> list:
       All coordinates are absolute pixels.
     """
     if text_prompt is None:
+        # text_prompt = (
+        #     "product . text . logo . background . "
+        #     "image . graphic . illustration . icon . button"
+        # )
         text_prompt = (
-            "product . text . logo . background . "
-            "image . graphic . illustration . icon . button"
+            "product . logo . person . icon . illustration . graphic"
         )
 
     # load_image returns (PIL image, transformed tensor) — both needed

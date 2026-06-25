@@ -1,19 +1,20 @@
 import { useState } from 'react'
-import UploadPage from './pages/UploadPage'
+import UploadPage   from './pages/UploadPage'
 import CanvasEditor from './pages/CanvasEditor'
-import HistoryPage from './pages/HistoryPage'
+import HistoryPage  from './pages/HistoryPage'
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('upload')
   const [projectData, setProjectData] = useState(null)
 
-  const goToCanvas = (data) => {
-    setProjectData(data)
-    setCurrentPage('canvas')
-  }
-
+  const goToCanvas  = (data) => { setProjectData(data); setCurrentPage('canvas') }
   const goToHistory = () => setCurrentPage('history')
   const goToUpload  = () => setCurrentPage('upload')
+
+  // canvas gets its own full-viewport layout — no global nav here
+  if (currentPage === 'canvas') {
+    return <CanvasEditor project={projectData} onBack={goToUpload} />
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -25,23 +26,12 @@ export default function App() {
           Editify
         </span>
         <div className="flex gap-4">
-          <button
-            onClick={goToUpload}
-            className="text-sm text-gray-400 hover:text-white transition"
-          >
-            Upload
-          </button>
-          <button
-            onClick={goToHistory}
-            className="text-sm text-gray-400 hover:text-white transition"
-          >
-            History
-          </button>
+          <button onClick={goToUpload}  className="text-sm text-gray-400 hover:text-white transition">Upload</button>
+          <button onClick={goToHistory} className="text-sm text-gray-400 hover:text-white transition">History</button>
         </div>
       </nav>
 
-      {currentPage === 'upload'  && <UploadPage onSuccess={goToCanvas} />}
-      {currentPage === 'canvas'  && <CanvasEditor project={projectData} onBack={goToUpload} />}
+      {currentPage === 'upload'  && <UploadPage  onSuccess={goToCanvas} />}
       {currentPage === 'history' && <HistoryPage onOpen={goToCanvas} />}
     </div>
   )

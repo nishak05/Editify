@@ -1,6 +1,19 @@
 import { useState, useEffect } from 'react'
+import ActionBar from './ActionBar'
 
-export default function PropertiesPanel({ selected, fabricRef, onDelete, onPropertyChange }) {
+export default function PropertiesPanel({
+  selected,
+  fabricRef,
+  onDelete,
+  onPropertyChange,
+  groups,
+  setGroups,
+  layers,
+  setLayers,
+  setSelected,
+  canvasVersion,
+}) {
+  
   const [props, setProps] = useState(null)
 
   useEffect(() => {
@@ -11,13 +24,10 @@ export default function PropertiesPanel({ selected, fabricRef, onDelete, onPrope
   useEffect(() => {
     if (!fabricRef?.current) return
     const canvas = fabricRef.current
-
     const onModified = () => { if (selected) setProps(readProps(selected)) }
-
     canvas.on('object:modified', onModified)
     canvas.on('object:moving',   onModified)
     canvas.on('object:scaling',  onModified)
-
     return () => {
       canvas.off('object:modified', onModified)
       canvas.off('object:moving',   onModified)
@@ -35,7 +45,7 @@ export default function PropertiesPanel({ selected, fabricRef, onDelete, onPrope
 
   if (!props) return <EmptyState />
 
-  const isGroup = selected?.type === 'activeSelection'
+  const isGroup = selected?.type === 'activeSelection' || selected?.type === 'group'
 
   return (
     <div className="w-56 bg-gray-900 border-l border-gray-800 flex flex-col flex-shrink-0 overflow-hidden">
@@ -52,9 +62,9 @@ export default function PropertiesPanel({ selected, fabricRef, onDelete, onPrope
           <Field label="Name">{props.label}</Field>
           <Field label="Type">
             <span className={`text-xs px-1.5 py-0.5 rounded
-              ${props.type === 'text'
-                ? 'bg-blue-900 text-blue-300'
-                : 'bg-emerald-900 text-emerald-300'}`}>
+              ${props.type === 'text'   ? 'bg-blue-900 text-blue-300'    :
+                isGroup                 ? 'bg-purple-900 text-purple-300' :
+                                          'bg-emerald-900 text-emerald-300'}`}>
               {isGroup ? 'group' : props.type}
             </span>
           </Field>
@@ -64,8 +74,8 @@ export default function PropertiesPanel({ selected, fabricRef, onDelete, onPrope
 
         <Section title="Position">
           <div className="grid grid-cols-2 gap-2">
-            <NumField label="X" value={props.x} />
-            <NumField label="Y" value={props.y} />
+            <NumField label="X" value={`${props.x}px`} />
+            <NumField label="Y" value={`${props.y}px`} />
           </div>
         </Section>
 
@@ -73,8 +83,8 @@ export default function PropertiesPanel({ selected, fabricRef, onDelete, onPrope
 
         <Section title="Size">
           <div className="grid grid-cols-2 gap-2">
-            <NumField label="W" value={props.w} />
-            <NumField label="H" value={props.h} />
+            <NumField label="W" value={`${props.w}px`} />
+            <NumField label="H" value={`${props.h}px`} />
           </div>
         </Section>
 
@@ -93,14 +103,17 @@ export default function PropertiesPanel({ selected, fabricRef, onDelete, onPrope
 
         <Divider />
 
-        <Section>
-          <button
-            onClick={onDelete}
-            className="w-full py-2 bg-red-900 hover:bg-red-800 text-red-200 text-sm rounded-md transition-colors"
-          >
-            Delete {isGroup ? 'group' : 'element'}
-          </button>
-        </Section>
+        <ActionBar
+          selected={selected}
+          fabricRef={fabricRef}
+          groups={groups}
+          setGroups={setGroups}
+          layers={layers}
+          setLayers={setLayers}
+          onDelete={onDelete}
+          onSnapshot={onPropertyChange}
+          setSelected={setSelected}
+        />
 
       </div>
     </div>
@@ -155,7 +168,6 @@ function NumField({ label, value }) {
     </div>
   )
 }
-
 
 function readProps(obj) {
   if (!obj) return null

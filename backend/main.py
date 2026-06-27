@@ -17,6 +17,8 @@ from crud import (
     update_project_error,
     get_all_projects,
     get_project_by_file_id,
+    save_project_state, 
+    get_saved_state
 )
 from pipeline import run_pipeline
 
@@ -195,3 +197,36 @@ async def get_project_layers(file_id: str, db: Session = Depends(get_db)):
         })
     except Exception as e:
         raise HTTPException(500, f"Pipeline failed: {str(e)}")
+    
+@app.post("/projects/{file_id}/save")
+async def save_project(file_id: str, request: dict, db: Session = Depends(get_db)):
+    """
+    Save the complete edited project state.
+    Called by the frontend auto-save. Never reruns any AI model.
+    """
+    project = get_project_by_file_id(db, file_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    saved_state   = request.get("saved_state")
+    thumbnail_b64 = request.get("thumbnail_b64")
+    layer_count   = request.get("layer_count", project.layer_count)
+
+    if not saved_state:
+        raise HTTPException(400, "saved_state is required")
+
+    updated = save_project_state(db, file_id, saved_state, thumbnail_b64, layer_count)
+    return JSONResponse({"status": "saved", "file_id": file_id})
+
+
+@app.get("/projects/{file_id}/saved")
+async def load_saved_project(file_id: str, db: Session = Depends(get_db)):
+    """
+    Load the last saved editor state for a project.
+    Returns saved_state JSON if it exists, otherwise returns has_saved_state: false.
+    Frontend decides whether to rerun pipeline or deserialize saved state.
+    """
+    data = get_saved_state(db, file_id)
+    if not data:
+        raise HTTPException(404, "Project not found")
+    return JSONResponse(data)

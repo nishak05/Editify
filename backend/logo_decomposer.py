@@ -3,17 +3,13 @@ from PIL import Image
 import io
 import base64
 
+from text_extractor import extract_text_layers
+
 
 def pil_to_base64(img: Image.Image, fmt: str = "PNG") -> str:
     buffer = io.BytesIO()
     img.save(buffer, format=fmt)
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-
-def crop_text_layer(image_path, x, y, w, h):
-    img  = Image.open(image_path).convert("RGBA")
-    crop = img.crop((x, y, x + w, y + h))
-    return pil_to_base64(crop, "PNG")
 
 
 def get_text_inside_logo(text_blocks, logo_box, tolerance=10):
@@ -29,11 +25,6 @@ def get_text_inside_logo(text_blocks, logo_box, tolerance=10):
 
 
 def subtract_text_from_mask(mask, text_blocks, logo_box, tolerance=10):
-    """
-    Zeroes out OCR text regions from the SAM2 mask.
-    What remains is the graphic-only pixels — no text baked in.
-    Works on any image regardless of content.
-    """
     result = mask.copy()
     lx1 = logo_box["x"] - tolerance
     ly1 = logo_box["y"] - tolerance
@@ -41,7 +32,6 @@ def subtract_text_from_mask(mask, text_blocks, logo_box, tolerance=10):
     ly2 = logo_box["y"] + logo_box["h"] + tolerance
 
     for block in text_blocks:
-        # only subtract text that sits inside the logo region
         bx1 = max(0, block["x"] - tolerance)
         by1 = max(0, block["y"] - tolerance)
         bx2 = block["x"] + block["w"] + tolerance
@@ -80,18 +70,25 @@ def decompose_logo(image_path, image_rgb, logo_detection, text_blocks, predictor
         "h": logo_detection["y2"] - logo_detection["y1"],
     }
 
-    text_inside = get_text_inside_logo(text_blocks, logo_box_dict)
+    # use text_extractor as the single source of truth for text layer structure
+    all_text_layers = extract_text_layers(image_path)
+    text_inside     = get_text_inside_logo(all_text_layers, logo_box_dict)
 
     graphic_created = False
     try:
-        mask = get_mask_for_box(predictor, image_rgb, logo_box_list)
+        mask          = get_mask_for_box(predictor, image_rgb, logo_box_list)
+        original_mask = mask.copy()
 
-        # remove text pixel regions from graphic mask
         if text_inside:
             mask = subtract_text_from_mask(mask, text_inside, logo_box_dict)
 
         rows = np.where(mask.any(axis=1))[0]
         cols = np.where(mask.any(axis=0))[0]
+
+        if len(rows) == 0:
+            mask = original_mask
+            rows = np.where(mask.any(axis=1))[0]
+            cols = np.where(mask.any(axis=0))[0]
 
         if len(rows) > 0:
             y1, y2 = int(rows.min()), int(rows.max())
@@ -120,23 +117,9 @@ def decompose_logo(image_path, image_rgb, logo_detection, text_blocks, predictor
         print(f"[LOGO] SAM2 failed for logo graphic: {e}")
 
     for block in text_inside:
-        b64 = crop_text_layer(
-            image_path,
-            block["x"], block["y"],
-            block["w"], block["h"]
-        )
         layers.append({
+            **block,
             "id":         layer_id,
-            "type":       "text",
-            "text":       block["text"],
-            "label":      block["text"],
-            "x":          block["x"],
-            "y":          block["y"],
-            "w":          block["w"],
-            "h":          block["h"],
-            "confidence": block["confidence"],
-            "base64":     b64,
-            "format":     "png",
             "group_id":   "group_0" if graphic_created else None,
             "group_role": "child"   if graphic_created else None,
         })

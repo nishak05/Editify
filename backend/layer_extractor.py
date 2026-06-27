@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 
 from grounding import load_grounding_model, detect_objects
-from ocr import extract_text
+from text_extractor import extract_text_layers
 from proposal_engine import run_proposal_engine, compute_groups, reject_text_inside_objects
 from logo_decomposer import decompose_logo, get_text_inside_logo
 
@@ -22,10 +22,10 @@ def pil_to_base64(img: Image.Image, fmt: str = "PNG") -> str:
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
-def crop_text_layer(image_path, x, y, w, h):
-    img  = Image.open(image_path).convert("RGBA")
-    crop = img.crop((x, y, x + w, y + h))
-    return pil_to_base64(crop, "PNG")
+# def crop_text_layer(image_path, x, y, w, h):
+#     img  = Image.open(image_path).convert("RGBA")
+#     crop = img.crop((x, y, x + w, y + h))
+#     return pil_to_base64(crop, "PNG")
 
 
 def classify_image_type(detections, img_w, img_h):
@@ -37,7 +37,7 @@ def classify_image_type(detections, img_w, img_h):
     for d in detections:
         label    = d["label"].strip().lower()
         fraction = (d["x2"] - d["x1"]) * (d["y2"] - d["y1"]) / image_area
-        if label in {"logo", "logo icon"} and fraction > LOGO_AREA_THRESHOLD and fraction > best_fraction:
+        if label.startswith("logo") and fraction > LOGO_AREA_THRESHOLD and fraction > best_fraction:
             best_fraction = fraction
             best_det      = d
 
@@ -73,7 +73,7 @@ def build_layers(image_path: str) -> tuple:
 
     # --- OCR ---
     print("[LAYERS] Running OCR...")
-    text_blocks = extract_text(image_path)
+    text_blocks = extract_text_layers(image_path)
 
     # --- classify and route ---
     image_type, logo_detection = classify_image_type(detections, img_w, img_h)
@@ -101,7 +101,6 @@ def build_layers(image_path: str) -> tuple:
         for block in text_blocks:
             if id(block) in text_inside_ids:
                 continue
-            b64 = crop_text_layer(image_path, block["x"], block["y"], block["w"], block["h"])
             layers.append({
                 "id":         next_id,
                 "type":       "text",
@@ -112,8 +111,6 @@ def build_layers(image_path: str) -> tuple:
                 "w":          block["w"],
                 "h":          block["h"],
                 "confidence": block["confidence"],
-                "base64":     b64,
-                "format":     "png",
                 "group_id":   None,
                 "group_role": None,
             })
@@ -201,11 +198,6 @@ def build_layers(image_path: str) -> tuple:
         print(f"[LAYERS] Rejected {len(rejected_text)} text blocks inside object layers")
 
     for block in clean_text:
-        b64 = crop_text_layer(
-            image_path,
-            block["x"], block["y"],
-            block["w"], block["h"]
-        )
         layers.append({
             "id":         layer_id,
             "type":       "text",
@@ -216,8 +208,6 @@ def build_layers(image_path: str) -> tuple:
             "w":          block["w"],
             "h":          block["h"],
             "confidence": block["confidence"],
-            "base64":     b64,
-            "format":     "png",
         })
         layer_id += 1
 

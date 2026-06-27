@@ -1,18 +1,17 @@
+import { useState, useRef, useEffect } from 'react'
+
 export default function Toolbar({
-  selectionMode,
-  setSelectionMode,
-  onExport,
-  onUndo,
-  onRedo,
-  canUndo,
-  canRedo,
+  onExport, onUndo, onRedo, canUndo, canRedo,
+  onNewUpload, saveStatus, onSaveNow,
 }) {
   return (
     <div className="h-12 bg-gray-900 border-b border-gray-800 flex items-center px-4 gap-4 flex-shrink-0">
 
-      <span className="text-white font-bold text-base tracking-tight select-none w-24">
+      <span className="text-white font-bold text-base tracking-tight select-none">
         Editify
       </span>
+
+      <FileMenu onNewUpload={onNewUpload} />
 
       <div className="w-px h-6 bg-gray-700" />
 
@@ -23,7 +22,7 @@ export default function Toolbar({
 
       <div className="w-px h-6 bg-gray-700" />
 
-      <SelectionSwitch value={selectionMode} onChange={setSelectionMode} />
+      <SaveButton status={saveStatus} onSaveNow={onSaveNow} />
 
       <div className="ml-auto">
         <button
@@ -35,6 +34,87 @@ export default function Toolbar({
       </div>
 
     </div>
+  )
+}
+
+
+function FileMenu({ onNewUpload }) {
+  const [open, setOpen] = useState(false)
+  const ref             = useRef(null)
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1 text-sm text-gray-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-800"
+      >
+        File
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 opacity-60">
+          <path d="M7 10l5 5 5-5z"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-1 w-44 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1">
+          <MenuItem
+            label="New upload"
+            onClick={() => { setOpen(false); onNewUpload?.() }}
+            icon={
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            }
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+function MenuItem({ label, onClick, icon }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors text-left"
+    >
+      {icon}
+      {label}
+    </button>
+  )
+}
+
+
+function SaveButton({ status, onSaveNow }) {
+  const config = {
+    unsaved: { label: 'Unsaved changes', color: 'text-yellow-400', spin: false },
+    saving:  { label: 'Saving...',       color: 'text-blue-400',   spin: true  },
+    saved:   { label: 'Saved ✓',         color: 'text-green-400',  spin: false },
+    error:   { label: 'Save failed',     color: 'text-red-400',    spin: false },
+  }
+  const { label, color, spin } = config[status] ?? config.saved
+
+  return (
+    <button
+      onClick={onSaveNow}
+      title="Save now"
+      className={`flex items-center gap-1.5 text-xs ${color} hover:opacity-80 transition-opacity`}
+    >
+      {spin && (
+        <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+      )}
+      {label}
+    </button>
   )
 }
 
@@ -53,35 +133,5 @@ function ToolbarButton({ onClick, disabled, label, title }) {
     >
       {label}
     </button>
-  )
-}
-
-
-function SelectionSwitch({ value, onChange }) {
-  const options = [
-    { id: 'individual', label: 'Individual' },
-    { id: 'group',      label: 'Group' },
-  ]
-
-  return (
-    <div
-      className="flex items-center bg-gray-800 rounded-md p-0.5 gap-0.5"
-      role="group"
-      aria-label="Selection mode"
-    >
-      {options.map(opt => (
-        <button
-          key={opt.id}
-          onClick={() => onChange(opt.id)}
-          className={`px-3 py-1 rounded text-sm font-medium transition-colors
-            ${value === opt.id
-              ? 'bg-gray-600 text-white'
-              : 'text-gray-400 hover:text-gray-200'
-            }`}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
   )
 }

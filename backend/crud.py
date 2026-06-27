@@ -45,3 +45,28 @@ def get_all_projects(db: Session) -> list:
 def get_project_by_file_id(db: Session, file_id: str) -> Project:
     """Fetch one project by its file_id."""
     return db.query(Project).filter(Project.file_id == file_id).first()
+
+def save_project_state(db, file_id: str, saved_state: str, thumbnail_b64: str, layer_count: int):
+    project = db.query(Project).filter(Project.file_id == file_id).first()
+    if not project:
+        return None
+    project.saved_state   = saved_state
+    project.thumbnail_b64 = thumbnail_b64
+    project.layer_count   = layer_count
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+def get_saved_state(db, file_id: str):
+    project = db.query(Project).filter(Project.file_id == file_id).first()
+    if not project:
+        return None
+    return {
+        "has_saved_state": project.saved_state is not None,
+        "saved_state":     project.saved_state,
+        "thumbnail_b64":   project.thumbnail_b64,
+        "filename":        project.filename,
+        "file_id":         project.file_id,
+        "layer_count":     project.layer_count,
+    }

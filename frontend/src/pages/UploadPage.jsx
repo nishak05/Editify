@@ -3,7 +3,7 @@ import axios from 'axios'
 
 const API = import.meta.env.VITE_API_URL
 
-export default function UploadPage({ onSuccess }) {
+export default function UploadPage({ onSuccess, onHistory}) {
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [step, setStep]     = useState('')

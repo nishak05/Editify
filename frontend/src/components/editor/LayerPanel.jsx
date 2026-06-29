@@ -5,10 +5,10 @@ export default function LayerPanel({ layers, groups, selected, fabricRef, onSele
   const selectedIds = getSelectedIds(selected)
 
   return (
-    <div className="w-56 bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0 overflow-hidden">
+    <div className="w-72 bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0 overflow-hidden">
 
-      <div className="px-4 py-3 border-b border-gray-800">
-        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+      <div className="px-5 py-4 border-b border-gray-800">
+        <span className="text-x1 font-semibold text-gray-400 uppercase tracking-wider">
           Layers
         </span>
       </div>
@@ -49,7 +49,7 @@ function GroupRow({ section, selectedIds, fabricRef, onSelectGroup, onBump }) {
   return (
     <div>
       <div
-        className={`flex items-center gap-1.5 py-1.5 px-3 mx-1 rounded cursor-pointer transition-colors
+        className={`flex items-center gap-1.5 py-2 px-3 mx-1 rounded cursor-pointer transition-colors
           ${allSelected ? 'bg-gray-700' : 'hover:bg-gray-800'}`}
         onClick={() => onSelectGroup(section.layers)}
       >
@@ -103,11 +103,28 @@ function LayerRow({ layer, isSelected, indented, fabricRef, onBump }) {
     return obj ? obj.visible !== false : true
   })()
 
+  const handleSelect = () => {
+    if (!fabricRef?.current) return
+
+    const canvas = fabricRef.current
+
+    const obj = canvas.getObjects().find(
+      o => o.data?.layerId === layer.id
+    )
+
+    if (!obj) return
+
+    canvas.setActiveObject(obj)
+    canvas.renderAll()
+  }
+
   return (
     <div
+      onClick={handleSelect}
       className={`flex items-center gap-2 py-1.5 mx-1 rounded transition-colors
         ${indented ? 'pl-7 pr-2' : 'px-3'}
         ${isSelected ? 'bg-gray-700' : 'hover:bg-gray-800'}`}
+      
     >
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0
         ${layer.type === 'text' ? 'bg-blue-400' : 'bg-emerald-400'}`}

@@ -148,7 +148,7 @@ if __name__ == "__main__":
     TEST_IMAGE = os.path.join(
         BACKEND_DIR,
         "test_images",
-        "sale_img.jpg"
+        "logo_company.jpg"
     )
 
     if not os.path.exists(TEST_IMAGE):

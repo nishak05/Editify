@@ -75,6 +75,10 @@ def build_layers(image_path: str) -> tuple:
     print("[LAYERS] Running OCR...")
     text_blocks = extract_text_layers(image_path)
 
+    print("\nOCR DETECTED:")
+    for t in text_blocks:
+        print(t["text"])
+
     # --- classify and route ---
     image_type, logo_detection = classify_image_type(detections, img_w, img_h)
 
@@ -120,7 +124,12 @@ def build_layers(image_path: str) -> tuple:
         return layers, groups
 
     # --- not-logo path ---
-    clean_objects = run_proposal_engine(object_proposals, img_w, img_h)
+    clean_objects = run_proposal_engine(
+        object_proposals,
+        text_blocks,
+        img_w,
+        img_h,
+    )
     print(f"[LAYERS] {len(clean_objects)} objects passed proposal engine")
 
     layers   = []
@@ -194,6 +203,7 @@ def build_layers(image_path: str) -> tuple:
     ]
 
     clean_text, rejected_text = reject_text_inside_objects(text_proposals, object_boxes)
+        
     if rejected_text:
         print(f"[LAYERS] Rejected {len(rejected_text)} text blocks inside object layers")
 

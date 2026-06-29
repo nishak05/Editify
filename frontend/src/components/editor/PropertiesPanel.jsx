@@ -48,10 +48,10 @@ export default function PropertiesPanel({
   const isGroup = selected?.type === 'activeSelection' || selected?.type === 'group'
 
   return (
-    <div className="w-56 bg-gray-900 border-l border-gray-800 flex flex-col flex-shrink-0 overflow-hidden">
+    <div className="w-72 bg-gray-900 border-l border-gray-800 flex flex-col flex-shrink-0 overflow-hidden">
 
-      <div className="px-4 py-3 border-b border-gray-800">
-        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+      <div className="px-5 py-4 border-b border-gray-800">
+        <span className="text-x1 font-semibold text-gray-400 uppercase tracking-wider">
           Properties
         </span>
       </div>
@@ -97,7 +97,7 @@ export default function PropertiesPanel({
               onChange={e => handleOpacity(Number(e.target.value))}
               className="flex-1 accent-blue-500"
             />
-            <span className="text-xs text-gray-400 w-8 text-right">{props.opacity}%</span>
+            <span className="text-sm text-gray-400 w-8 text-right">{props.opacity}%</span>
           </div>
         </Section>
 
@@ -123,13 +123,13 @@ export default function PropertiesPanel({
 
 function EmptyState() {
   return (
-    <div className="w-56 bg-gray-900 border-l border-gray-800 flex flex-col flex-shrink-0">
-      <div className="px-4 py-3 border-b border-gray-800">
-        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+    <div className="w-72 bg-gray-900 border-l border-gray-800 flex flex-col flex-shrink-0">
+      <div className="px-5 py-4 border-b border-gray-800">
+        <span className="text-x1 font-semibold text-gray-400 uppercase tracking-wider">
           Properties
         </span>
       </div>
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex justify-center pt-24">
         <p className="text-xs text-gray-600 text-center px-4">
           Select an element<br />to see its properties
         </p>
@@ -155,7 +155,7 @@ function Field({ label, children }) {
   return (
     <div className="flex items-center justify-between py-0.5">
       <span className="text-xs text-gray-500">{label}</span>
-      <span className="text-xs text-gray-300 truncate max-w-[120px] text-right">{children}</span>
+      <span className="text-xs text-gray-300 truncate max-w-[170px] text-right">{children}</span>
     </div>
   )
 }

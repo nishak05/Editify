@@ -1,12 +1,35 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import ProjectCard from '../components/library/ProjectCard'
+import ConfirmDialog from '../components/common/ConfirmDialog'
+
+import { FiSearch } from 'react-icons/fi'
+
 
 const API = import.meta.env.VITE_API_URL
 
 export default function HistoryPage({ onOpen }) {
   const [projects, setProjects] = useState([])
   const [loading,  setLoading]  = useState(true)
-  const [error,    setError]    = useState('')
+  const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [projectToDelete, setProjectToDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const filteredProjects = projects.filter(project =>
+    project.filename.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const groupedProjects = {
+    Today: [],
+    Yesterday: [],
+    'Earlier This Week': [],
+    Older: [],
+  }
+
+  filteredProjects.forEach(project => {
+    groupedProjects[getSection(project.created_at)].push(project)
+    console.log(project.created_at)
+  })
 
   useEffect(() => {
     axios.get(`${API}/projects`)
@@ -38,6 +61,38 @@ export default function HistoryPage({ onOpen }) {
     }
   }
 
+  const deleteProject = async () => {
+    if (!projectToDelete) return
+    try {
+
+      setDeleting(true)
+
+      await axios.delete(`${API}/projects/${projectToDelete.file_id}`)
+
+      setProjects(prev =>
+        prev.filter(p => p.file_id !== projectToDelete.file_id)
+      )
+
+      const last = localStorage.getItem("editify_last_project")
+
+      if (last === projectToDelete.file_id) {
+        localStorage.removeItem("editify_last_project")
+      }
+
+      setProjectToDelete(null)
+
+    } catch {
+
+      alert("Failed to delete project.")
+
+    } finally {
+
+      setDeleting(false)
+
+    }
+
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -56,57 +111,141 @@ export default function HistoryPage({ onOpen }) {
   )
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-bold mb-6">Past projects</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.map(p => (
-          <HistoryCard key={p.id} project={p} onClick={() => fetchAndOpen(p)} />
-        ))}
-      </div>
-    </div>
-  )
-}
+    <>
+      <div className="min-h-screen bg-[#070B16]">
+        <div className="max-w-7xl mx-auto px-8 py-6">
 
+          {/* Header */}
 
-function HistoryCard({ project, onClick }) {
-  const date = formatDate(project.created_at)
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-6">
 
-  return (
-    <div
-      onClick={onClick}
-      className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition cursor-pointer group"
-    >
-      {/* thumbnail */}
-      <div className="w-full h-40 bg-gray-800 flex items-center justify-center overflow-hidden">
-        {project.thumbnail_b64 ? (
-          <img
-            src={`data:image/png;base64,${project.thumbnail_b64}`}
-            alt={project.filename}
-            className="w-full h-full object-contain"
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-2 text-gray-600">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <path d="M21 15l-5-5L5 21"/>
-            </svg>
-            <span className="text-xs">No preview</span>
+            <div>
+
+              <h1
+                className="
+                  text-5xl
+                  font-extrabold
+                  tracking-tight
+                  bg-gradient-to-r
+                  from-cyan-400
+                  via-blue-500
+                  to-purple-500
+                  bg-clip-text
+                  text-transparent
+                "
+              >
+                Your Library
+              </h1>
+
+              <p className="mt-3 text-gray-400 text-lg">
+                All your designs, organized in one place.
+              </p>
+
+            </div>
+
+            <div className="relative w-72">
+              <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg" />
+
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search your library..."
+                className="
+                  w-full
+                  rounded-xl
+                  border
+                  border-white/10
+                  bg-white/5
+                  pl-11
+                  pr-4
+                  py-3
+                  text-white
+                  placeholder:text-gray-500
+                  outline-none
+                  transition-all
+                  duration-200
+                  focus:border-blue-500
+                  focus:bg-white/10
+                "
+              />
+            </div>
+
           </div>
-        )}
-      </div>
 
-      {/* metadata */}
-      <div className="p-3">
-        <p className="text-sm font-medium text-white truncate mb-1">{project.filename}</p>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">{project.layer_count} layers · {date}</span>
-          <span className={`text-xs font-medium ${project.status === 'ready' ? 'text-green-400' : 'text-yellow-400'}`}>
-            {project.status}
-          </span>
+          {filteredProjects.length === 0 && (
+
+          <div className="text-center py-24">
+
+              <h2 className="text-2xl font-semibold text-white">
+                  No matching projects
+              </h2>
+
+              <p className="text-gray-500 mt-2">
+                  Try another filename.
+              </p>
+
+          </div>
+
+          )}
+
+          {filteredProjects.length > 0 && Object.entries(groupedProjects).map(([section, items]) => {
+
+            if (items.length === 0) return null
+            
+            return (
+              <div key={section} className="mb-12">
+
+                <div className="flex items-center mb-7">
+
+                    <h2 className="text-xl font-bold text-white pr-5">
+                        {section}
+                    </h2>
+
+                    <div className="flex-1 border-t border-white/15"></div>
+
+                </div>
+
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+
+                  {items.map(project => (
+
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      onClick={() => fetchAndOpen(project)}
+                      onDelete={setProjectToDelete}
+
+                    />
+
+                  ))}
+
+                </div>
+
+              </div>
+            )
+
+          })}
+
         </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={projectToDelete !== null}
+        title="Delete Project"
+        message={
+          projectToDelete
+            ? `Are you sure you want to permanently delete\n"${projectToDelete.filename}"?\n\nThis action cannot be undone.`
+            : ""
+        }
+        confirmText={deleting ? "Deleting..." : "Delete"}
+        cancelText="Cancel"
+        onCancel={() => {
+          if (!deleting) setProjectToDelete(null)
+        }}
+        onConfirm={deleteProject}
+      />
+    </>
   )
 }
 
@@ -119,4 +258,19 @@ function formatDate(timestamp) {
   } catch {
     return timestamp.split(' ')[0]
   }
+}
+
+function getSection(dateString) {
+  const today = new Date()
+  const date = new Date(dateString)
+
+  today.setHours(0, 0, 0, 0)
+  date.setHours(0, 0, 0, 0)
+
+  const diff = Math.floor((today - date) / (1000 * 60 * 60 * 24))
+
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Yesterday'
+  if (diff <= 7) return 'Earlier This Week'
+  return 'Older'
 }

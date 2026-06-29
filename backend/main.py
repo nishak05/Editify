@@ -6,6 +6,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from datetime import timezone, timedelta
 
 from config import UPLOAD_DIR, PROJECT_NAME
 from database import Base, engine, get_db
@@ -18,7 +19,8 @@ from crud import (
     get_all_projects,
     get_project_by_file_id,
     save_project_state, 
-    get_saved_state
+    get_saved_state,
+    delete_project,
 )
 from pipeline import run_pipeline
 
@@ -96,13 +98,17 @@ def list_projects(db: Session = Depends(get_db)):
     projects = get_all_projects(db)
     return [
         {
-            "id":            p.id,
-            "filename":      p.filename,
-            "file_id":       p.file_id,
-            "layer_count":   p.layer_count,
-            "status":        p.status,
-            "processing_ms": p.processing_ms,
-            "created_at":    str(p.created_at),
+            "id":             p.id,
+            "filename":       p.filename,
+            "file_id":        p.file_id,
+            "layer_count":    p.layer_count,
+            "status":         p.status,
+            "processing_ms":  p.processing_ms,
+            "created_at": (p.created_at.replace(tzinfo=timezone.utc)
+                            .astimezone(timezone(timedelta(hours=5, minutes=30)))
+                            .isoformat()
+                        ),
+            "thumbnail_b64":  p.thumbnail_b64,
         }
         for p in projects
     ]
@@ -121,7 +127,11 @@ def get_project(file_id: str, db: Session = Depends(get_db)):
         "layer_count":   project.layer_count,
         "status":        project.status,
         "processing_ms": project.processing_ms,
-        "created_at":    str(project.created_at),
+        "created_at": (
+                        project.created_at.replace(tzinfo=timezone.utc)
+                        .astimezone(timezone(timedelta(hours=5, minutes=30)))
+                        .isoformat()
+                    )
     }
 
 
@@ -230,3 +240,31 @@ async def load_saved_project(file_id: str, db: Session = Depends(get_db)):
     if not data:
         raise HTTPException(404, "Project not found")
     return JSONResponse(data)
+
+@app.delete("/projects/{file_id}")
+async def remove_project(file_id: str, db: Session = Depends(get_db)):
+
+    project = get_project_by_file_id(db, file_id)
+
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    # Delete uploaded image
+    if project.upload_path and os.path.exists(project.upload_path):
+        try:
+            os.remove(project.upload_path)
+        except:
+            pass
+
+    # Delete generated inpaint image (if present)
+    inpaint_path = os.path.join("outputs", f"inpaint_{file_id}.jpg")
+    if os.path.exists(inpaint_path):
+        try:
+            os.remove(inpaint_path)
+        except:
+            pass
+
+    # Delete database record LAST
+    delete_project(db, file_id)
+
+    return {"status": "deleted"}

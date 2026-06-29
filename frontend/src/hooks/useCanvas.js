@@ -27,20 +27,47 @@ export function useCanvas(project) {
       height:                 dispH,
       preserveObjectStacking: true,
     })
+    
     fabricRef.current = canvas
 
     // if we have a saved canvas JSON, restore from it directly
-    // this avoids rerunning any AI pipeline
     if (project._savedState) {
       try {
         const state = JSON.parse(project._savedState)
         if (state.canvas_json) {
-          canvas.loadFromJSON(state.canvas_json, () => {
+          const parsedJson = JSON.parse(state.canvas_json)
+          canvas.loadFromJSON(parsedJson, () => {
             restoreBackground(canvas)
-            canvas.renderAll()
-            const restoredLayers = extractLayersFromCanvas(canvas)
-            setLayers(restoredLayers)
-            setReady(true)
+
+            // wait for all image objects to finish loading their src
+            const imageObjects = canvas.getObjects().filter(o => o.type === 'image')
+            if (imageObjects.length === 0) {
+              canvas.renderAll()
+              setLayers(extractLayersFromCanvas(canvas))
+              setReady(true)
+              return
+            }
+
+            let loadedImages = 0
+            const onImageLoad = () => {
+              loadedImages++
+              if (loadedImages === imageObjects.length) {
+                canvas.renderAll()
+                setLayers(extractLayersFromCanvas(canvas))
+                setReady(true)
+              }
+            }
+
+            imageObjects.forEach(img => {
+              if (img._element?.complete) {
+                onImageLoad()
+              } else if (img._element) {
+                img._element.onload  = onImageLoad
+                img._element.onerror = onImageLoad
+              } else {
+                onImageLoad()
+              }
+            })
           })
           return () => { canvas.dispose(); fabricRef.current = null }
         }
@@ -111,6 +138,8 @@ function renderObjectLayer(canvas, layer, scale, onLoaded) {
   fabric.Image.fromURL(
     `data:${mime};base64,${layer.base64}`,
     (img) => {
+      if (!canvas.lowerCanvasEl) return 
+      
       img.set({
         left:        Math.round(layer.x * scale),
         top:         Math.round(layer.y * scale),
@@ -138,7 +167,7 @@ function renderObjectLayer(canvas, layer, scale, onLoaded) {
 function renderTextLayer(canvas, layer, scale, onLoaded) {
   const canvasH  = layer.h * scale
   const fontSize = Math.max(8, Math.round(canvasH * FONT_SIZE_RATIO))
-
+  
   const textObj = new fabric.IText(layer.text, {
     left:        Math.round(layer.x * scale),
     top:         Math.round(layer.y * scale),
@@ -184,6 +213,7 @@ function loadLayers(canvas, project, scale, setLayers, setReady) {
     allLayers.push(layer)
     loaded++
     if (loaded === total) {
+      if (!canvas.lowerCanvasEl) return  // canvas was disposed, abort
       canvas.renderAll()
       setLayers([...allLayers])
       setReady(true)

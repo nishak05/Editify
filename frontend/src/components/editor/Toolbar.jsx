@@ -1,17 +1,39 @@
 import { useState, useRef, useEffect } from 'react'
 
 export default function Toolbar({
-  onExport, onUndo, onRedo, canUndo, canRedo,
-  onNewUpload, saveStatus, onSaveNow,
+  onExport,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  onNewUpload,
+  onOpenLibrary,
+  saveStatus,
+  onSaveNow,
 }) {
   return (
-    <div className="h-12 bg-gray-900 border-b border-gray-800 flex items-center px-4 gap-4 flex-shrink-0">
+    <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center px-4 gap-4 flex-shrink-0">
 
-      <span className="text-white font-bold text-base tracking-tight select-none">
+      <span className="
+          text-3xl
+          font-extrabold
+          tracking-tight
+          bg-gradient-to-r
+          from-cyan-400
+          via-blue-500
+          to-purple-500
+          bg-clip-text
+          text-transparent
+          "
+        >
         Editify
       </span>
 
-      <FileMenu onNewUpload={onNewUpload} />
+      <FileMenu
+          onNewUpload={onNewUpload}
+          onOpenLibrary={onOpenLibrary}
+          onSave={onExport}
+      />
 
       <div className="w-px h-6 bg-gray-700" />
 
@@ -20,16 +42,29 @@ export default function Toolbar({
         <ToolbarButton onClick={onRedo} disabled={!canRedo} label="Redo" title="Ctrl+Y" />
       </div>
 
-      <div className="w-px h-6 bg-gray-700" />
+      <div className="w-px h-7 bg-white/10" />
 
       <SaveButton status={saveStatus} onSaveNow={onSaveNow} />
 
       <div className="ml-auto">
         <button
           onClick={onExport}
-          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-md transition-colors"
+          className="
+            flex items-center gap-2
+            px-5 py-2.5
+            rounded-xl
+            text-sm font-medium
+            bg-gradient-to-r
+            from-blue-600
+            to-purple-600
+            text-white
+            shadow-lg shadow-purple-500/20
+            hover:shadow-purple-500/35
+            hover:scale-[1.02]
+            transition-all duration-200
+            "
         >
-          Export PNG
+          Export
         </button>
       </div>
 
@@ -38,45 +73,75 @@ export default function Toolbar({
 }
 
 
-function FileMenu({ onNewUpload }) {
+function FileMenu({ onNewUpload, onOpenLibrary, onSave }) {
   const [open, setOpen] = useState(false)
-  const ref             = useRef(null)
+  const ref = useRef(null)
 
   useEffect(() => {
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target))
+        setOpen(false)
     }
+
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
   return (
     <div className="relative" ref={ref}>
+
       <button
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-1 text-sm text-gray-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-800"
+        className="
+          flex items-center gap-1.5
+          px-3 py-2
+          rounded-lg
+          text-md
+          text-gray-300
+          hover:text-white
+          hover:bg-white/5
+          transition-all
+        "
       >
         File
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 opacity-60">
-          <path d="M7 10l5 5 5-5z"/>
+
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M7 10l5 5 5-5"/>
         </svg>
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-44 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1">
+        <div className="absolute top-full left-0 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1">
+
           <MenuItem
-            label="New upload"
-            onClick={() => { setOpen(false); onNewUpload?.() }}
-            icon={
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-            }
+            label="New Upload"
+            onClick={()=>{
+              setOpen(false)
+              onNewUpload?.()
+            }}
           />
+
+          <MenuItem
+            label="Library"
+            onClick={() => {
+              setOpen(false)
+              onOpenLibrary?.()
+            }}
+          />
+
+          <div className="my-1 border-t border-gray-700" />
+
+          <MenuItem
+            label="Save"
+            onClick={()=>{
+              setOpen(false)
+              onSave?.()
+            }}
+          />
+
         </div>
       )}
+
     </div>
   )
 }
@@ -108,7 +173,7 @@ function SaveButton({ status, onSaveNow }) {
     <button
       onClick={onSaveNow}
       title="Save now"
-      className={`flex items-center gap-1.5 text-xs ${color} hover:opacity-80 transition-opacity`}
+      className={`flex items-center gap-1.5 text-sm font-medium ${color} hover:opacity-80 transition-opacity`}
     >
       {spin && (
         <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -125,7 +190,7 @@ function ToolbarButton({ onClick, disabled, label, title }) {
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`px-3 py-1 rounded text-sm transition-colors
+      className={`px-3 py-2 rounded text-sm transition-colors
         ${disabled
           ? 'text-gray-600 cursor-not-allowed'
           : 'text-gray-300 hover:text-white hover:bg-gray-800'

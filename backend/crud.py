@@ -70,3 +70,14 @@ def get_saved_state(db, file_id: str):
         "file_id":         project.file_id,
         "layer_count":     project.layer_count,
     }
+
+def delete_project(db: Session, file_id: str):
+    project = db.query(Project).filter(Project.file_id == file_id).first()
+
+    if not project:
+        return None
+
+    db.delete(project)
+    db.commit()
+
+    return project

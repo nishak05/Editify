@@ -80,7 +80,7 @@ export default function TextToolbar({ selected, fabricRef, onPropertyChange }) {
       <select
         value={fontFamily}
         onChange={e => handleFontFamily(e.target.value)}
-        className="bg-gray-800 text-gray-200 text-xs rounded px-2 py-1 border border-gray-700 focus:outline-none"
+        className="bg-gray-800 text-gray-200 text-sm rounded-md px-3 py-1.5 border border-gray-700 focus:outline-none"
       >
         {FONT_OPTIONS.map(f => (
           <option key={f} value={f}>{f}</option>
@@ -88,7 +88,7 @@ export default function TextToolbar({ selected, fabricRef, onPropertyChange }) {
       </select>
 
       {/* font size */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         <button
           onClick={() => handleFontSize(fontSize - 1)}
           className="w-5 h-5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-xs flex items-center justify-center"
@@ -97,13 +97,13 @@ export default function TextToolbar({ selected, fabricRef, onPropertyChange }) {
           type="number"
           value={fontSize}
           onChange={e => handleFontSize(e.target.value)}
-          className="w-12 bg-gray-800 text-gray-200 text-xs text-center rounded px-1 py-1 border border-gray-700 focus:outline-none"
+          className="w-12 bg-gray-800 text-gray-200 text-sm text-center rounded-md px-1 py-1 border border-gray-700 focus:outline-none"
           min={6}
           max={300}
         />
         <button
           onClick={() => handleFontSize(fontSize + 1)}
-          className="w-5 h-5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-xs flex items-center justify-center"
+          className="w-6 h-6 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md text-sm flex items-center justify-center"
         >+</button>
       </div>
 
@@ -111,7 +111,7 @@ export default function TextToolbar({ selected, fabricRef, onPropertyChange }) {
 
       {/* color */}
       <div className="flex items-center gap-1.5">
-        <span className="text-xs text-gray-500">Color</span>
+        <span className="text-sm text-gray-400 font-medium">Color</span>
         <input
           type="color"
           value={color}
@@ -139,7 +139,7 @@ function StyleButton({ label, active, onClick, style }) {
     <button
       onClick={onClick}
       style={style}
-      className={`w-7 h-7 rounded text-sm transition-colors
+      className={`w-8 h-8 rounded-md text-sm font-semibold transition-colors
         ${active
           ? 'bg-gray-600 text-white'
           : 'text-gray-400 hover:text-white hover:bg-gray-800'

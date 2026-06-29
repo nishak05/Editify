@@ -11,7 +11,7 @@ import LayerPanel      from '../components/editor/LayerPanel'
 import CanvasStage     from '../components/editor/CanvasStage'
 import PropertiesPanel from '../components/editor/PropertiesPanel'
 
-export default function CanvasEditor({ project, onBack }) {
+export default function CanvasEditor({ project, onBack, onLibrary}) {
   const { canvasRef, fabricRef, layers, setLayers, ready } = useCanvas(project)
   const { selected, setSelected }                          = useSelection(fabricRef, ready)
   const { pushSnapshot, undo, redo, canUndo, canRedo }     = useHistory(fabricRef, setLayers)
@@ -112,6 +112,7 @@ export default function CanvasEditor({ project, onBack }) {
         canUndo={canUndo}
         canRedo={canRedo}
         onNewUpload={onBack}
+        onOpenLibrary={onLibrary}
         saveStatus={saveStatus}
         onSaveNow={saveNow}
       />

@@ -4,10 +4,8 @@ import torch
 import numpy as np
 from PIL import Image
 
-# tell Python where groundingdino package is
 from groundingdino.util.inference import load_model, load_image, predict
 
-# config
 GROUNDING_CONFIG   = os.path.join(os.path.dirname(__file__), "models", "GroundingDINO_SwinT_OGC.py")
 GROUNDING_WEIGHTS  = os.path.join(os.path.dirname(__file__), "models", "groundingdino_swint_ogc.pth")
 DEVICE             = "cuda" if torch.cuda.is_available() else "cpu"
@@ -15,6 +13,7 @@ DEVICE             = "cuda" if torch.cuda.is_available() else "cpu"
 # detection thresholds
 BOX_THRESHOLD  = 0.30   # confidence needed to keep a box
 TEXT_THRESHOLD = 0.25   # confidence needed to keep a text label
+MIN_BOX_SIZE = 10
 
 print(f"[GDINO] Using device: {DEVICE}")
 
@@ -28,16 +27,8 @@ def load_grounding_model():
 
 def detect_objects(image_path: str, model, text_prompt: str = None) -> list:
     """
-    Detect objects in image using text prompt.
-
-    text_prompt examples:
-      "product . text . logo . background"
-      "person . car . sky"
-      If None, uses a default poster-focused prompt.
-
-    Returns list of dicts:
-      [{label, confidence, x1, y1, x2, y2, cx, cy, w, h}]
-      All coordinates are absolute pixels.
+    Detect objects using GroundingDINO.
+    Returns bounding boxes in image coordinates.
     """
     if text_prompt is None:
         # text_prompt = (
@@ -45,16 +36,14 @@ def detect_objects(image_path: str, model, text_prompt: str = None) -> list:
         #     "image . graphic . illustration . icon . button"
         # )
         text_prompt = (
-            "product . logo . person . icon . illustration . graphic"
+            "product . logo . person . icon . illustration . graphic . shape . cup"
         )
 
-    # load_image returns (PIL image, transformed tensor) — both needed
     image_pil, image_tensor = load_image(image_path)
 
 
     img_h, img_w = image_pil.shape[:2]
 
-    # run detection
     with torch.no_grad():
         boxes, confidences, labels = predict(
             model       = model,
@@ -94,21 +83,17 @@ def detect_objects(image_path: str, model, text_prompt: str = None) -> list:
 
     # sort by confidence descending
     results.sort(key=lambda r: r["confidence"], reverse=True)
+    
+    results = [
+        r for r in results
+        if r["w"] >= MIN_BOX_SIZE and r["h"] >= MIN_BOX_SIZE
+    ]
     return results
 
 
 def boxes_to_sam_prompts(detections: list) -> tuple:
     """
-    Convert GroundingDINO detections into SAM2 input format.
-
-    SAM2 accepts:
-      - point_coords: array of (x, y) centre points
-      - point_labels: array of 1s (foreground)
-
-    We use the centre of each detected box as a SAM2 prompt point.
-    This tells SAM2 exactly where to segment instead of using blind grid.
-
-    Returns: (point_coords np.array, point_labels np.array, labels list)
+    Convert detections into SAM2 point prompts.
     """
     if not detections:
         return None, None, []
@@ -128,8 +113,7 @@ def boxes_to_sam_prompts(detections: list) -> tuple:
 
 def save_detection_debug(image_path: str, detections: list, output_dir: str = None):
     """
-    Save debug image showing GroundingDINO bounding boxes.
-    Useful to visually verify detection quality before passing to SAM2.
+    Save detection boxes for debugging.
     """
     import cv2
 
@@ -159,7 +143,6 @@ def save_detection_debug(image_path: str, detections: list, output_dir: str = No
     return out_path
 
 
-# run directly to test
 if __name__ == "__main__":
     BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
     TEST_IMAGE  = os.path.join(BACKEND_DIR, "test_images", "sale_img.jpg")
@@ -176,15 +159,6 @@ if __name__ == "__main__":
     detections = detect_objects(TEST_IMAGE, model)
 
     point_coords, point_labels, sam_labels = boxes_to_sam_prompts(detections)
-
-    # print("\nSAM2 Prompt Points:")
-    # print(point_coords)
-
-    # print("\nSAM2 Point Labels:")
-    # print(point_labels)
-
-    # print("\nDetection Labels:")
-    # print(sam_labels)
 
     print(f"\nDetected {len(detections)} objects:")
     for d in detections:

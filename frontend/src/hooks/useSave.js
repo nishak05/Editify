@@ -1,13 +1,12 @@
 import { useRef, useState, useCallback } from 'react'
 import axios from 'axios'
 
-const API = import.meta.env.VITE_API_URL
+const API         = import.meta.env.VITE_API_URL
 const DEBOUNCE_MS = 2000
 
 export function useSave(fabricRef, project, layers, groups) {
-  const [saveStatus, setSaveStatus]   = useState('saved')
-  const debounceTimer                 = useRef(null)
-  const lastSavedRef                  = useRef(null)
+  const [saveStatus, setSaveStatus] = useState('saved')
+  const debounceTimer               = useRef(null)
 
   const saveNow = useCallback(async () => {
     if (!fabricRef.current || !project?.file_id) return
@@ -15,17 +14,22 @@ export function useSave(fabricRef, project, layers, groups) {
     setSaveStatus('saving')
 
     try {
-      const canvasJson   = JSON.stringify(fabricRef.current.toJSON(['data']))
-      const thumbnailB64 = fabricRef.current.toDataURL({ format: 'png', quality: 0.7 })
+      const canvas = fabricRef.current
+
+      // toJSON with 'data' ensures our custom layerId/groupId properties survive
+      const canvasObj  = canvas.toJSON(['data'])
+      const canvasJson = JSON.stringify(canvasObj)
+
+      const thumbnailB64 = canvas.toDataURL({ format: 'png', quality: 0.7 })
         .replace('data:image/png;base64,', '')
 
       const savedState = JSON.stringify({
-        canvas_json:  canvasJson,
-        layers:       layers,
-        groups:       groups,
-        image_w:      project.image_w,
-        image_h:      project.image_h,
-        filename:     project.filename,
+        canvas_json:       canvasJson,
+        layers:            layers,
+        groups:            groups,
+        image_w:           project.image_w,
+        image_h:           project.image_h,
+        filename:          project.filename,
         background_base64: project.background_base64,
       })
 
@@ -35,10 +39,9 @@ export function useSave(fabricRef, project, layers, groups) {
         layer_count:   layers.length,
       })
 
-      lastSavedRef.current = savedState
       setSaveStatus('saved')
 
-      // store last opened project id for refresh persistence
+      // so opening a new tab always starts fresh
       localStorage.setItem('editify_last_project', project.file_id)
 
     } catch (err) {
@@ -47,7 +50,6 @@ export function useSave(fabricRef, project, layers, groups) {
     }
   }, [fabricRef, project, layers, groups])
 
-  // call this after every meaningful edit
   const triggerAutoSave = useCallback(() => {
     setSaveStatus('unsaved')
     if (debounceTimer.current) clearTimeout(debounceTimer.current)

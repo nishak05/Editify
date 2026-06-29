@@ -91,13 +91,26 @@ def container_filter(proposals):
 
 
 def reject_text_inside_objects(text_proposals, accepted_objects):
-    kept, rejected = [], []
-    for t in text_proposals:
-        inside = any(is_fully_inside(t, obj) for obj in accepted_objects)
-        if inside:
-            rejected.append((t, "inside object"))
+    kept = []
+    rejected = []
+
+    for text in text_proposals:
+        text_area = text["w"] * text["h"]
+
+        remove = False
+
+        for obj in accepted_objects:
+            overlap = intersection_area(text, obj)
+
+            if overlap / text_area >= 0.90:
+                remove = True
+                break
+
+        if remove:
+            rejected.append((text, "inside object"))
         else:
-            kept.append(t)
+            kept.append(text)
+
     return kept, rejected
 
 
@@ -150,14 +163,44 @@ def print_proposal_report(accepted, all_rejected):
         print(f"[PROPOSAL]   {label:<25} Rejected ({reason})")
     print("[PROPOSAL] ─────────────────────────────────────\n")
 
+def reject_text_like_objects(object_proposals, text_proposals):
+    kept = []
+    rejected = []
 
-def run_proposal_engine(object_proposals, img_w, img_h):
+    for obj in object_proposals:
+        obj_area = obj["w"] * obj["h"]
+        remove = False
+
+        for text in text_proposals:
+            overlap = intersection_area(obj, text)
+
+            if overlap == 0:
+                continue
+
+            text_area = text["w"] * text["h"]
+
+            text_inside = overlap / text_area
+            object_is_text = overlap / obj_area
+
+            if text_inside > 0.90 and object_is_text > 0.70:
+                remove = True
+                break
+
+        if remove:
+            rejected.append((obj, "text object"))
+        else:
+            kept.append(obj)
+
+    return kept, rejected
+
+def run_proposal_engine(object_proposals, text_proposals, img_w, img_h):
     all_rejected = []
 
     after_semantic, rej = semantic_filter(object_proposals)
+    after_text, rej = reject_text_like_objects(after_semantic, text_proposals)
     all_rejected.extend(rej)
 
-    after_area, rej = area_filter(after_semantic, img_w, img_h)
+    after_area, rej = area_filter(after_text, img_w, img_h)
     all_rejected.extend(rej)
 
     after_dedup, rej = deduplicate(after_area)
@@ -169,3 +212,14 @@ def run_proposal_engine(object_proposals, img_w, img_h):
     print_proposal_report(after_container, all_rejected)
 
     return after_container
+
+def intersection_area(a, b):
+    x1 = max(a["x"], b["x"])
+    y1 = max(a["y"], b["y"])
+    x2 = min(a["x"] + a["w"], b["x"] + b["w"])
+    y2 = min(a["y"] + a["h"], b["y"] + b["h"])
+
+    if x2 <= x1 or y2 <= y1:
+        return 0
+
+    return (x2 - x1) * (y2 - y1)

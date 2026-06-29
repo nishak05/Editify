@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react'
+
+import HomeNavbar from './components/home/HomeNavbar'
 import axios from 'axios'
 import UploadPage   from './pages/UploadPage'
 import CanvasEditor from './pages/CanvasEditor'
 import HistoryPage  from './pages/HistoryPage'
+import LoginPage from './pages/LoginPage'
+import HistoryNavbar from "./components/library/HistoryNavbar";
+
 
 const API = import.meta.env.VITE_API_URL
 
@@ -11,8 +16,17 @@ export default function App() {
   const [projectData, setProjectData] = useState(null)
   const [restoring,   setRestoring]   = useState(true)
 
-  // on mount, check if there's a last opened project to restore
+  // check if there's a last opened project to restore
   useEffect(() => {
+    const isRefresh = sessionStorage.getItem('editify_session_active')
+    
+    if (!isRefresh) {
+      // new tab or fresh open — show home page
+      sessionStorage.setItem('editify_session_active', 'true')
+      setRestoring(false)
+      return
+    }
+
     const lastId = localStorage.getItem('editify_last_project')
     if (!lastId) { setRestoring(false); return }
 
@@ -22,8 +36,9 @@ export default function App() {
           const state = JSON.parse(res.data.saved_state)
           setProjectData({
             ...state,
-            file_id:  lastId,
-            filename: res.data.filename,
+            file_id:      lastId,
+            filename:     res.data.filename,
+            _savedState:  res.data.saved_state,
           })
           setCurrentPage('canvas')
         }
@@ -40,7 +55,10 @@ export default function App() {
   }
 
   const goToHistory = () => setCurrentPage('history')
-  const goToUpload  = () => setCurrentPage('upload')
+  const goToUpload = () => {
+    localStorage.removeItem('editify_last_project')
+    setCurrentPage('upload')
+  }
 
   if (restoring) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -48,23 +66,28 @@ export default function App() {
     </div>
   )
 
+  if (currentPage === 'login') {
+    return (
+      <LoginPage
+        onLogin={() => setCurrentPage('upload')}
+      />
+    )
+  }
+
   if (currentPage === 'canvas') {
-    return <CanvasEditor project={projectData} onBack={goToUpload} />
+    return <CanvasEditor project={projectData} onBack={goToUpload} onLibrary={goToHistory} />
   }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <nav className="flex items-center justify-between px-6 py-4 bg-gray-900 border-b border-gray-800">
-        <span
-          className="text-xl font-bold text-white select-none"
-        >
-          Editify
-        </span>
-        <div className="flex gap-4">
-          <button onClick={goToUpload}  className="text-sm text-gray-400 hover:text-white transition">Upload</button>
-          <button onClick={goToHistory} className="text-sm text-gray-400 hover:text-white transition">History</button>
-        </div>
-      </nav>
+
+      {currentPage === "history" && (
+          <HistoryNavbar
+              currentPage={currentPage}
+              goToUpload={goToUpload}
+              goToHistory={goToHistory}
+          />
+      )}
 
       {currentPage === 'upload'  && <UploadPage  onSuccess={goToCanvas} />}
       {currentPage === 'history' && <HistoryPage onOpen={goToCanvas} />}

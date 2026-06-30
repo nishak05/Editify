@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 
-import HomeNavbar from './components/home/HomeNavbar'
 import axios from 'axios'
 import UploadPage   from './pages/UploadPage'
 import CanvasEditor from './pages/CanvasEditor'
@@ -19,14 +18,27 @@ export default function App() {
   // check if there's a last opened project to restore
   useEffect(() => {
     const isRefresh = sessionStorage.getItem('editify_session_active')
-    
+
     if (!isRefresh) {
-      // new tab or fresh open — show home page
       sessionStorage.setItem('editify_session_active', 'true')
       setRestoring(false)
       return
     }
 
+    const lastPage = sessionStorage.getItem('editify_current_page')
+
+    if (lastPage === 'history') {
+      setCurrentPage('history')
+      setRestoring(false)
+      return
+    }
+
+    if (lastPage === 'upload' || !lastPage) {
+      setRestoring(false)
+      return
+    }
+
+    // lastPage === 'canvas'
     const lastId = localStorage.getItem('editify_last_project')
     if (!lastId) { setRestoring(false); return }
 
@@ -36,28 +48,32 @@ export default function App() {
           const state = JSON.parse(res.data.saved_state)
           setProjectData({
             ...state,
-            file_id:      lastId,
-            filename:     res.data.filename,
-            _savedState:  res.data.saved_state,
+            file_id:     lastId,
+            filename:    res.data.filename,
+            _savedState: res.data.saved_state,
           })
           setCurrentPage('canvas')
         }
       })
-      .catch(() => {
-        localStorage.removeItem('editify_last_project')
-      })
+      .catch(() => localStorage.removeItem('editify_last_project'))
       .finally(() => setRestoring(false))
   }, [])
 
   const goToCanvas = (data) => {
     setProjectData(data)
     setCurrentPage('canvas')
+    sessionStorage.setItem('editify_current_page', 'canvas')
   }
 
-  const goToHistory = () => setCurrentPage('history')
+  const goToHistory = () => {
+    setCurrentPage('history')
+    sessionStorage.setItem('editify_current_page', 'history')
+  }
+
   const goToUpload = () => {
     localStorage.removeItem('editify_last_project')
     setCurrentPage('upload')
+    sessionStorage.setItem('editify_current_page', 'upload')
   }
 
   if (restoring) return (
@@ -89,7 +105,7 @@ export default function App() {
           />
       )}
 
-      {currentPage === 'upload'  && <UploadPage  onSuccess={goToCanvas} />}
+      {currentPage === 'upload'  && <UploadPage  onSuccess={goToCanvas} onHistory={goToHistory}/>}
       {currentPage === 'history' && <HistoryPage onOpen={goToCanvas} />}
     </div>
   )

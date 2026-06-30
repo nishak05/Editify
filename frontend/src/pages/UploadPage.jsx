@@ -1,6 +1,11 @@
 import { useState, useRef } from 'react'
 import axios from 'axios'
 
+import HomeLayout from "../components/home/HomeLayout";
+import Hero from "../components/home/Hero";
+import UploadCard from "../components/home/UploadCard";
+import RecentFiles from "../components/home/RecentFiles";
+
 const API = import.meta.env.VITE_API_URL
 
 export default function UploadPage({ onSuccess, onHistory}) {
@@ -64,46 +69,34 @@ export default function UploadPage({ onSuccess, onHistory}) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
-      <h1 className="text-3xl font-bold mb-2">Upload a poster</h1>
-      <p className="text-gray-400 mb-8 text-center">
-        Drop any poster, banner, or flyer — we'll break it into editable layers
-      </p>
+    <HomeLayout onLibrary={onHistory}>
+      <div className="h-full flex flex-col px-12 pt-2 pb-4">
 
-      {!isLoading ? (
-        <div
-          onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={onDrop}
-          onClick={() => fileInputRef.current.click()}
-          className={`w-full max-w-lg h-64 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition
-            ${isDragging ? 'border-blue-400 bg-blue-950' : 'border-gray-600 hover:border-gray-400 bg-gray-900'}`}
-        >
-          <div className="text-5xl mb-4">🖼️</div>
-          <p className="text-gray-300 font-medium">Drag & drop your image here</p>
-          <p className="text-gray-500 text-sm mt-1">or click to browse</p>
-          <p className="text-gray-600 text-xs mt-3">JPEG, PNG, WEBP supported</p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(e) => handleFile(e.target.files[0])}
-          />
-        </div>
-      ) : (
-        <div className="w-full max-w-lg h-64 border-2 border-blue-500 rounded-xl flex flex-col items-center justify-center bg-gray-900">
-          <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-blue-300 font-medium">{step}</p>
-          <p className="text-gray-500 text-sm mt-2">This takes 10–30 seconds</p>
-        </div>
-      )}
+        <Hero />
 
-      {error && (
-        <div className="mt-4 px-4 py-3 bg-red-950 border border-red-700 rounded-lg text-red-300 text-sm max-w-lg w-full">
-          {error}
+        <div className="mt-2 flex flex-col items-center">
+
+          <div className="mt-2 w-full flex justify-center">
+            <UploadCard
+              isDragging={isDragging}
+              isLoading={isLoading}
+              error={error}
+              step={step}
+              fileInputRef={fileInputRef}
+              handleFile={handleFile}
+              onDrop={onDrop}
+              setIsDragging={setIsDragging}
+            />
+          </div>
+
+          <div className="mt-2 w-full max-w-7xl mx-auto">
+            <RecentFiles />
+          </div>
+
         </div>
-      )}
-    </div>
+
+      </div>
+
+    </HomeLayout>
   )
 }

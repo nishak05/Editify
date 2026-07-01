@@ -1,31 +1,21 @@
-export default function RecentFiles() {
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-  const files = [
-    {
-      name: "lemon_tea.png",
-      size: "2.1 MB • PNG",
-      time: "2 hours ago",
-      image: "https://picsum.photos/80?1"
-    },
-    {
-      name: "coffee_shop.jpg",
-      size: "3.4 MB • JPG",
-      time: "Yesterday",
-      image: "https://picsum.photos/80?2"
-    },
-    {
-      name: "music_fest.png",
-      size: "1.8 MB • PNG",
-      time: "2 days ago",
-      image: "https://picsum.photos/80?3"
-    },
-    {
-      name: "summer_sale.jpg",
-      size: "2.9 MB • JPG",
-      time: "4 days ago",
-      image: "https://picsum.photos/80?4"
-    },
-  ]
+const API = import.meta.env.VITE_API_URL;
+
+export default function RecentFiles({ onOpen, onViewAll }) {
+
+  const [files, setFiles] = useState([]);
+
+  useEffect(() => {
+
+      axios.get(`${API}/projects`)
+          .then(res => {
+              setFiles(res.data.slice(0, 4));
+          })
+          .catch(() => {});
+
+  }, []);
 
   return (
 
@@ -37,7 +27,10 @@ export default function RecentFiles() {
           Recent Files
         </h2>
 
-        <button className="text-cyan-400 hover:text-cyan-300">
+        <button
+          onClick={onViewAll}
+          className="text-cyan-400 hover:text-cyan-300"
+        >
           View All
         </button>
 
@@ -60,6 +53,8 @@ export default function RecentFiles() {
 
             <div
               key={index}
+              onClick={() => onOpen(file)}
+
               className="
               flex
               items-center
@@ -76,30 +71,30 @@ export default function RecentFiles() {
               "
             >
 
-            <img
-              src={file.image}
-              className="w-20 h-20 rounded-lg object-cover"
-            />
+            {file.thumbnail_b64 ? (
+              <img
+                src={`data:image/png;base64,${file.thumbnail_b64}`}
+                className="w-20 h-20 rounded-lg object-cover"
+                alt={file.filename}
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-lg bg-[#1B2434] flex items-center justify-center text-xs text-gray-500">
+                No Preview
+              </div>
+            )}
 
-            <div className="flex-1 overflow-hidden">
+            <div 
+              className="flex-1 overflow-hidden">
 
               <p className="truncate font-medium">
-                {file.name}
+                {file.filename}
               </p>
 
               <p className="text-sm text-gray-400">
-                {file.size}
-              </p>
-
-              <p className="text-sm text-gray-500">
-                {file.time}
+                {new Date(file.created_at).toLocaleDateString()}
               </p>
 
             </div>
-
-            <button className="text-gray-500 hover:text-white text-xl">
-              ⋮
-            </button>
 
             </div>
 

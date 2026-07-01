@@ -5,15 +5,17 @@ import HomeLayout from "../components/home/HomeLayout";
 import Hero from "../components/home/Hero";
 import UploadCard from "../components/home/UploadCard";
 import RecentFiles from "../components/home/RecentFiles";
+import HelpDialog from "../components/common/HelpDialog";
 
 const API = import.meta.env.VITE_API_URL
 
-export default function UploadPage({ onSuccess, onHistory}) {
+export default function UploadPage({ onSuccess, onHistory, onOpenProject, onAccount, onHelp,}) {
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [step, setStep]     = useState('')
   const [error, setError]   = useState('')
   const fileInputRef        = useRef(null)
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const steps = [
     'Uploading image...',
@@ -69,34 +71,50 @@ export default function UploadPage({ onSuccess, onHistory}) {
   }
 
   return (
-    <HomeLayout onLibrary={onHistory}>
-      <div className="h-full flex flex-col px-12 pt-2 pb-4">
+    <>
+      <HomeLayout 
+        onLibrary={onHistory} 
+        onAccount={onAccount} 
+        onHelp={() => setHelpOpen(true)}>
 
-        <Hero />
+        <div className="h-full flex flex-col px-12 pt-2 pb-4">
 
-        <div className="mt-2 flex flex-col items-center">
+          <Hero />
 
-          <div className="mt-2 w-full flex justify-center">
-            <UploadCard
-              isDragging={isDragging}
-              isLoading={isLoading}
-              error={error}
-              step={step}
-              fileInputRef={fileInputRef}
-              handleFile={handleFile}
-              onDrop={onDrop}
-              setIsDragging={setIsDragging}
-            />
-          </div>
+          <div className="mt-2 flex flex-col items-center">
 
-          <div className="mt-2 w-full max-w-7xl mx-auto">
-            <RecentFiles />
+            <div className="mt-2 w-full flex justify-center">
+              <UploadCard
+                isDragging={isDragging}
+                isLoading={isLoading}
+                error={error}
+                step={step}
+                fileInputRef={fileInputRef}
+                handleFile={handleFile}
+                onDrop={onDrop}
+                setIsDragging={setIsDragging}
+              />
+            </div>
+
+            <div className="mt-2 w-full max-w-7xl mx-auto">
+              <RecentFiles 
+                  onOpen={onOpenProject}
+                  onViewAll={onHistory}
+              />
+
+            </div>
+
           </div>
 
         </div>
 
-      </div>
+      </HomeLayout>
+      
+      <HelpDialog
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+      />
 
-    </HomeLayout>
+    </>
   )
 }

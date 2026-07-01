@@ -8,7 +8,7 @@ import { FiSearch } from 'react-icons/fi'
 
 const API = import.meta.env.VITE_API_URL
 
-export default function HistoryPage({ onOpen }) {
+export default function HistoryPage({ onOpenProject }) {
   const [projects, setProjects] = useState([])
   const [loading,  setLoading]  = useState(true)
   const [error, setError] = useState('')
@@ -37,29 +37,6 @@ export default function HistoryPage({ onOpen }) {
       .catch(() => setError('Could not load history. Is the backend running?'))
       .finally(() => setLoading(false))
   }, [])
-
-  const fetchAndOpen = async (project) => {
-    if (project.status !== 'ready') return
-    try {
-      const saved = await axios.get(`${API}/projects/${project.file_id}/saved`)
-
-      if (saved.data.has_saved_state) {
-        const state = JSON.parse(saved.data.saved_state)
-        onOpen({
-          ...state,
-          file_id:      project.file_id,
-          filename:     project.filename,
-          _savedState:  saved.data.saved_state,
-        })
-      } else {
-        // no saved state — rerun pipeline
-        const res = await axios.get(`${API}/projects/${project.file_id}/layers`)
-        onOpen(res.data)
-      }
-    } catch {
-      alert('Could not load project. Try uploading again.')
-    }
-  }
 
   const deleteProject = async () => {
     if (!projectToDelete) return
@@ -213,7 +190,7 @@ export default function HistoryPage({ onOpen }) {
                     <ProjectCard
                       key={project.id}
                       project={project}
-                      onClick={() => fetchAndOpen(project)}
+                      onClick={() => onOpenProject(project)}
                       onDelete={setProjectToDelete}
 
                     />

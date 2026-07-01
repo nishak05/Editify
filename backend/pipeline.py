@@ -8,6 +8,7 @@ import numpy as np
 from PIL import Image
 
 from layer_extractor import build_layers
+from config import INPAINT_BACKGROUND_METHOD
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -28,7 +29,6 @@ def reconstruct_background(image_path: str, layers: list) -> str:
     h, w      = image_bgr.shape[:2]
 
     combined_mask = np.zeros((h, w), dtype=np.uint8)
-
     for layer in layers:
         x  = max(0, layer["x"])
         y  = max(0, layer["y"])
@@ -36,12 +36,16 @@ def reconstruct_background(image_path: str, layers: list) -> str:
         y2 = min(h, layer["y"] + layer["h"])
         combined_mask[y:y2, x:x2] = 255
 
-    clean_bg = cv2.inpaint(
-        image_bgr,
-        combined_mask,
-        inpaintRadius=25,
-        flags=cv2.INPAINT_TELEA
-    )
+    if INPAINT_BACKGROUND_METHOD == "lama":
+        try:
+            from inpaint_lama import lama_reconstruct_background
+            print("[PIPELINE] Using LaMa for background reconstruction")
+            clean_bg = lama_reconstruct_background(image_bgr, combined_mask)
+        except Exception as e:
+            print(f"[PIPELINE] LaMa failed ({e}), falling back to TELEA")
+            clean_bg = cv2.inpaint(image_bgr, combined_mask, inpaintRadius=25, flags=cv2.INPAINT_TELEA)
+    else:
+        clean_bg = cv2.inpaint(image_bgr, combined_mask, inpaintRadius=25, flags=cv2.INPAINT_TELEA)
 
     _, buffer = cv2.imencode('.jpg', clean_bg, [cv2.IMWRITE_JPEG_QUALITY, 95])
     return base64.b64encode(buffer).decode("utf-8")

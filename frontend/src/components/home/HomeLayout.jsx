@@ -1,13 +1,13 @@
-import { FiBookOpen, FiUser } from "react-icons/fi";
+import {FiUser, FiHome,  FiFolder, } from "react-icons/fi";
 
-export default function HomeLayout({ children, onLibrary }) {
+export default function HomeLayout({ children, onLibrary, currentPage = "home" , onAccount,onHelp,}) {
+
   return (
     <div className="flex h-screen bg-[#060B16] text-white">
 
       {/* LEFT SIDEBAR */}
       <aside className="w-64 bg-[#08111F] border-r border-white/10 flex flex-col">
 
-        {/* Logo */}
         <div className="px-8 pt-8 pb-10">
           <h1
             className="
@@ -26,8 +26,29 @@ export default function HomeLayout({ children, onLibrary }) {
           </h1>
         </div>
 
-        {/* Navigation */}
-        <div className="px-3">
+        <div className="px-3 flex flex-col gap-2">
+
+          <button
+            className="
+              w-full
+              flex
+              items-center
+              gap-3
+              px-5
+              py-3.5
+              rounded-xl
+              bg-gradient-to-r
+              from-cyan-500/15
+              to-blue-600/15
+              border
+              border-cyan-500/40
+              text-white
+              font-medium
+            "
+          >
+            <span className="text-lg"><FiHome /></span>
+            Home
+          </button>
 
           <button
             onClick={onLibrary}
@@ -37,19 +58,16 @@ export default function HomeLayout({ children, onLibrary }) {
               items-center
               gap-3
               px-5
-              py-4
+              py-3.5
               rounded-xl
-              border
-              border-blue-500
-              bg-white/5
-              text-white
+              text-gray-400
+              hover:bg-white/5
+              hover:text-white
               transition
             "
           >
-            <FiBookOpen size={20} />
-            <span className="text-lg font-medium">
-              Library
-            </span>
+            <span className="text-lg">< FiFolder /></span>
+            Library
           </button>
 
         </div>
@@ -60,6 +78,7 @@ export default function HomeLayout({ children, onLibrary }) {
         <div className="border-t border-white/10 p-6">
 
           <button
+            onClick={onAccount}
             className="
               flex
               items-center
@@ -69,7 +88,8 @@ export default function HomeLayout({ children, onLibrary }) {
               transition
             "
           >
-            <div className="
+            <div
+              className="
                 w-12
                 h-12
                 rounded-full
@@ -79,7 +99,8 @@ export default function HomeLayout({ children, onLibrary }) {
                 flex
                 items-center
                 justify-center
-            ">
+              "
+            >
               <FiUser size={22} />
             </div>
 
@@ -89,9 +110,10 @@ export default function HomeLayout({ children, onLibrary }) {
               </div>
 
               <div className="text-sm text-gray-500">
-                View Profile →
+                My Account
               </div>
             </div>
+
           </button>
 
         </div>
@@ -102,7 +124,34 @@ export default function HomeLayout({ children, onLibrary }) {
       <div className="flex-1 flex flex-col">
 
         {/* TOP BAR */}
-        <header className="h-14 border-b border-white/10 bg-[#08111F]/90 backdrop-blur-md" />
+        <header
+          className="
+            h-14
+            border-b
+            border-white/10
+            bg-[#08111F]/90
+            backdrop-blur-md
+            flex
+            items-center
+            justify-end
+            px-8
+          "
+        >
+
+          <button
+            onClick={onHelp}
+            className="
+              text-gray-400
+              hover:text-cyan-400
+              transition
+              font-medium
+            "
+          >
+            Help
+          </button>
+
+        </header>
+
 
         {/* PAGE CONTENT */}
         <main

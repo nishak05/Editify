@@ -6,7 +6,8 @@ import CanvasEditor from './pages/CanvasEditor'
 import HistoryPage  from './pages/HistoryPage'
 import LoginPage from './pages/LoginPage'
 import HistoryNavbar from "./components/library/HistoryNavbar";
-
+import AccountPage from "./pages/AccountPage";
+import HelpDialog from "./components/common/HelpDialog";
 
 const API = import.meta.env.VITE_API_URL
 
@@ -14,6 +15,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('upload')
   const [projectData, setProjectData] = useState(null)
   const [restoring,   setRestoring]   = useState(true)
+  // const [helpOpen, setHelpOpen] = useState(false);
 
   // check if there's a last opened project to restore
   useEffect(() => {
@@ -65,10 +67,42 @@ export default function App() {
     sessionStorage.setItem('editify_current_page', 'canvas')
   }
 
+  const openProject = async (project) => {
+  try {
+    const saved = await axios.get(
+      `${API}/projects/${project.file_id}/saved`
+    );
+
+    if (saved.data.has_saved_state) {
+      const state = JSON.parse(saved.data.saved_state);
+
+      goToCanvas({
+        ...state,
+        file_id: project.file_id,
+        filename: project.filename,
+        _savedState: saved.data.saved_state,
+      });
+    } else {
+      const res = await axios.get(
+        `${API}/projects/${project.file_id}/layers`
+      );
+
+      goToCanvas(res.data);
+    }
+  } catch {
+    alert("Could not load project.");
+  }
+};
+
   const goToHistory = () => {
     setCurrentPage('history')
     sessionStorage.setItem('editify_current_page', 'history')
   }
+
+  const goToAccount = () => {
+    setCurrentPage("account");
+    sessionStorage.setItem("editify_current_page", "account");
+  };
 
   const goToUpload = () => {
     localStorage.removeItem('editify_last_project')
@@ -94,6 +128,14 @@ export default function App() {
     return <CanvasEditor project={projectData} onBack={goToUpload} onLibrary={goToHistory} />
   }
 
+  if (currentPage === "account") {
+    return (
+      <AccountPage
+        onBack={goToUpload}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
 
@@ -105,8 +147,18 @@ export default function App() {
           />
       )}
 
-      {currentPage === 'upload'  && <UploadPage  onSuccess={goToCanvas} onHistory={goToHistory}/>}
-      {currentPage === 'history' && <HistoryPage onOpen={goToCanvas} />}
+      {currentPage === 'upload'  
+        && <UploadPage    
+          onSuccess={goToCanvas}
+          onHistory={goToHistory}
+          onOpenProject={openProject}
+          onAccount={goToAccount}
+          onHelp={() => setHelpOpen(true)}
+      />
+      }
+      {currentPage === 'history' && <HistoryPage onOpenProject={openProject} />}
+
+      
     </div>
   )
 }

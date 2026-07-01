@@ -28,28 +28,51 @@ def reconstruct_background(image_path: str, layers: list) -> str:
     image_bgr = cv2.imread(image_path)
     h, w      = image_bgr.shape[:2]
 
-    combined_mask = np.zeros((h, w), dtype=np.uint8)
-    for layer in layers:
-        x  = max(0, layer["x"])
-        y  = max(0, layer["y"])
-        x2 = min(w, layer["x"] + layer["w"])
-        y2 = min(h, layer["y"] + layer["h"])
-        combined_mask[y:y2, x:x2] = 255
+    object_mask = np.zeros((h, w), dtype=np.uint8)
+    text_mask   = np.zeros((h, w), dtype=np.uint8)
 
-    if INPAINT_BACKGROUND_METHOD == "lama":
-        try:
-            from inpaint_lama import lama_reconstruct_background
-            print("[PIPELINE] Using LaMa for background reconstruction")
-            clean_bg = lama_reconstruct_background(image_bgr, combined_mask)
-        except Exception as e:
-            print(f"[PIPELINE] LaMa failed ({e}), falling back to TELEA")
-            clean_bg = cv2.inpaint(image_bgr, combined_mask, inpaintRadius=25, flags=cv2.INPAINT_TELEA)
-    else:
-        clean_bg = cv2.inpaint(image_bgr, combined_mask, inpaintRadius=25, flags=cv2.INPAINT_TELEA)
+    for layer in layers:
+        if layer.get("type") == "text":
+            # expand bbox slightly to catch character edge artifacts
+            x  = max(0, layer["x"] - 2)
+            y  = max(0, layer["y"] - 3)
+            x2 = min(w, layer["x"] + layer["w"] + 2)
+            y2 = min(h, layer["y"] + layer["h"] + 3)
+            text_mask[y:y2, x:x2] = 255
+        else:
+            x  = max(0, layer["x"])
+            y  = max(0, layer["y"])
+            x2 = min(w, layer["x"] + layer["w"])
+            y2 = min(h, layer["y"] + layer["h"])
+            object_mask[y:y2, x:x2] = 255
+
+    # merge overlapping text regions via dilation then close gaps
+    if text_mask.any():
+        kernel    = np.ones((3, 3), np.uint8)
+        text_mask = cv2.dilate(text_mask, kernel, iterations=1)
+
+    clean_bg = image_bgr.copy()
+
+    # object layers — LaMa if enabled, TELEA fallback
+    if object_mask.any():
+        if INPAINT_BACKGROUND_METHOD == "lama":
+            try:
+                from inpaint_lama import lama_reconstruct_background
+                print("[PIPELINE] Using LaMa for object layers")
+                clean_bg = lama_reconstruct_background(clean_bg, object_mask)
+            except Exception as e:
+                print(f"[PIPELINE] LaMa failed ({e}), falling back to TELEA for objects")
+                clean_bg = cv2.inpaint(clean_bg, object_mask, inpaintRadius=25, flags=cv2.INPAINT_TELEA)
+        else:
+            clean_bg = cv2.inpaint(clean_bg, object_mask, inpaintRadius=25, flags=cv2.INPAINT_TELEA)
+
+    # text layers — always TELEA, applied on top of object result
+    if text_mask.any():
+        print("[PIPELINE] Using TELEA for text layers")
+        clean_bg = cv2.inpaint(clean_bg, text_mask, inpaintRadius=25, flags=cv2.INPAINT_TELEA)
 
     _, buffer = cv2.imencode('.jpg', clean_bg, [cv2.IMWRITE_JPEG_QUALITY, 95])
     return base64.b64encode(buffer).decode("utf-8")
-
 
 def run_pipeline(image_path: str) -> dict:
     start = time.time()

@@ -114,7 +114,7 @@ function FileMenu({ onNewUpload, onOpenLibrary, onSave }) {
         <div className="absolute top-full left-0 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1">
 
           <MenuItem
-            label="New Upload"
+            label="Home"
             onClick={()=>{
               setOpen(false)
               onNewUpload?.()
